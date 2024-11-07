@@ -7,6 +7,12 @@ const TokenType = enum {
     RIGHT_PAREN,
     LEFT_BRACE,
     RIGHT_BRACE,
+    STAR,
+    DOT,
+    COMMA,
+    PLUS,
+    MINUS,
+    SEMICOLON,
 };
 
 const Token = struct {
@@ -46,6 +52,24 @@ fn match(c: u8) MyErrors!Token {
         },
         '}' => {
             return Token{ .tokenType = .RIGHT_BRACE, .lexeme = "}", .literal = null };
+        },
+        ',' => {
+            return Token{ .tokenType = .COMMA, .lexeme = ",", .literal = null };
+        },
+        '.' => {
+            return Token{ .tokenType = .DOT, .lexeme = ".", .literal = null };
+        },
+        '-' => {
+            return Token{ .tokenType = .MINUS, .lexeme = "-", .literal = null };
+        },
+        '+' => {
+            return Token{ .tokenType = .PLUS, .lexeme = "+", .literal = null };
+        },
+        ';' => {
+            return Token{ .tokenType = .SEMICOLON, .lexeme = ";", .literal = null };
+        },
+        '*' => {
+            return Token{ .tokenType = .STAR, .lexeme = "*", .literal = null };
         },
         0 => {
             return EOFToken;
