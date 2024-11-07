@@ -45,7 +45,7 @@ fn match(c: u8) MyErrors!Token {
             return Token{ .tokenType = .LEFT_BRACE, .lexeme = "{", .literal = null };
         },
         '}' => {
-            return Token{ .tokenType = .RIGHT_BRACE, .lexeme = "{", .literal = null };
+            return Token{ .tokenType = .RIGHT_BRACE, .lexeme = "}", .literal = null };
         },
         0 => {
             return EOFToken;
