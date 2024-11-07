@@ -5,6 +5,8 @@ const TokenType = enum {
     EOF,
     LEFT_PAREN,
     RIGHT_PAREN,
+    LEFT_BRACE,
+    RIGHT_BRACE,
 };
 
 const Token = struct {
@@ -38,6 +40,12 @@ fn match(c: u8) MyErrors!Token {
         },
         ')' => {
             return RParenToken;
+        },
+        '{' => {
+            return Token{ .tokenType = .LEFT_BRACE, .lexeme = "{", .literal = null };
+        },
+        '}' => {
+            return Token{ .tokenType = .RIGHT_BRACE, .lexeme = "{", .literal = null };
         },
         0 => {
             return EOFToken;
