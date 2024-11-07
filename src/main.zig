@@ -1,5 +1,53 @@
 const std = @import("std");
 
+const MyErrors = error{tokenNotFound};
+const TokenType = enum {
+    EOF,
+    LEFT_PAREN,
+    RIGHT_PAREN,
+};
+
+const Token = struct {
+    tokenType: TokenType,
+    lexeme: []const u8,
+    literal: ?[]u8,
+};
+
+const LParenToken = Token{
+    .tokenType = .LEFT_PAREN,
+    .lexeme = "(",
+    .literal = null,
+};
+
+const RParenToken = Token{
+    .tokenType = .RIGHT_PAREN,
+    .lexeme = ")",
+    .literal = null,
+};
+
+const EOFToken = Token{
+    .tokenType = .EOF,
+    .lexeme = "",
+    .literal = null,
+};
+
+fn match(c: u8) MyErrors!Token {
+    switch (c) {
+        '(' => {
+            return LParenToken;
+        },
+        ')' => {
+            return RParenToken;
+        },
+        0 => {
+            return EOFToken;
+        },
+        else => {
+            return MyErrors.tokenNotFound;
+        },
+    }
+}
+
 pub fn main() !void {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     std.debug.print("Logs from your program will appear here!\n", .{});
@@ -25,8 +73,17 @@ pub fn main() !void {
 
     // Uncomment this block to pass the first stage
     if (file_contents.len > 0) {
-        @panic("Scanner not implemented");
+        for (file_contents) |c| {
+            if (c == '\n') {
+                std.debug.print("fml", .{});
+                continue;
+            }
+            const token = try match(c);
+            try std.io.getStdOut().writer().print("{s} {s} {any}\n", .{ @tagName(token.tokenType), token.lexeme, token.literal });
+        }
+        try std.io.getStdOut().writer().print("{s} {s} {any}\n", .{ @tagName(EOFToken.tokenType), EOFToken.lexeme, EOFToken.literal });
     } else {
-        try std.io.getStdOut().writer().print("EOF  null\n", .{}); // Placeholder, remove this line when implementing the scanner
+        // try std.io.getStdOut().writer().print("EOF  null\n", .{}); // Placeholder, remove this line when implementing the scanner
+        try std.io.getStdOut().writer().print("{s} {s} {any}\n", .{ @tagName(EOFToken.tokenType), EOFToken.lexeme, EOFToken.literal });
     }
 }
