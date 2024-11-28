@@ -129,7 +129,13 @@ const Scanner = struct {
                 }
             },
             '/' => {
-                try self.addToken(.SLASH);
+                if (self.match('/')) {
+                    while (self.peek() != '\n' and self.isAtEnd() == false) {
+                        _ = self.advance();
+                    }
+                } else {
+                    try self.addToken(.SLASH);
+                }
             },
             ';' => {
                 try self.addToken(.SEMICOLON);
@@ -143,6 +149,10 @@ const Scanner = struct {
         }
     }
 
+    fn peek(self: *Scanner) u8 {
+        if (self.isAtEnd()) return 0;
+        return self.source[self.current];
+    }
     fn match(self: *Scanner, expected: u8) bool {
         if (self.isAtEnd()) return false;
         if (self.source[self.current] != expected) return false;
