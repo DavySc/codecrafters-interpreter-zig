@@ -143,6 +143,12 @@ const Scanner = struct {
             '*' => {
                 try self.addToken(.STAR);
             },
+            ' ' => {},
+            '\r' => {},
+            '\t' => {},
+            '\n' => {
+                self.line += 1;
+            },
             else => {
                 try @"error"(self.line, "Unexpected character: {c}", .{c});
             },
