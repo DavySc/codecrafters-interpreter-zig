@@ -12,10 +12,31 @@ fn @"error"(line: u32, comptime message: []const u8, args: anytype) !void {
     hadError = true;
 }
 
+const Literal = union(enum) {
+    number: f64,
+    string: []const u8,
+    none,
+
+    pub fn format(self: Literal, comptime _: []const u8, _: std.fmt.FormatOptions, _writer: anytype) !void {
+        switch (self) {
+            .string => |s| {
+                try _writer.print("{s}", .{s});
+            },
+
+            .number => |n| {
+                try _writer.print("{d}", .{n});
+            },
+
+            .none => {
+                _ = try _writer.write("null");
+            },
+        }
+    }
+};
 const Token = struct {
     tokentype: Type,
     lexeme: []const u8,
-    literal: ?union {},
+    literal: Literal,
 
     const Type = enum {
         LEFT_PAREN,
@@ -38,7 +59,9 @@ const Token = struct {
         EQUAL_EQUAL,
         GREATER_EQUAL,
         LESS_EQUAL,
+        STRING,
     };
+
     pub fn format(self: Token) !void {
         var buf: [32]u8 = undefined;
 
@@ -68,7 +91,7 @@ const Scanner = struct {
             self.start = self.current;
             try self.scanToken();
         }
-        try self.tokens.append(.{ .tokentype = .EOF, .lexeme = "", .literal = null });
+        try self.tokens.append(.{ .tokentype = .EOF, .lexeme = "", .literal = .none });
         return self.tokens.items;
     }
 
@@ -77,55 +100,55 @@ const Scanner = struct {
 
         switch (c) {
             '(' => {
-                try self.addToken(.LEFT_PAREN);
+                try self.addToken(.LEFT_PAREN, Literal.none);
             },
             ')' => {
-                try self.addToken(.RIGHT_PAREN);
+                try self.addToken(.RIGHT_PAREN, Literal.none);
             },
             '{' => {
-                try self.addToken(.LEFT_BRACE);
+                try self.addToken(.LEFT_BRACE, Literal.none);
             },
             '}' => {
-                try self.addToken(.RIGHT_BRACE);
+                try self.addToken(.RIGHT_BRACE, Literal.none);
             },
             ',' => {
-                try self.addToken(.COMMA);
+                try self.addToken(.COMMA, Literal.none);
             },
             '.' => {
-                try self.addToken(.DOT);
+                try self.addToken(.DOT, Literal.none);
             },
             '+' => {
-                try self.addToken(.PLUS);
+                try self.addToken(.PLUS, Literal.none);
             },
             '-' => {
-                try self.addToken(.MINUS);
+                try self.addToken(.MINUS, Literal.none);
             },
             '<' => {
                 if (self.match('=')) {
-                    try self.addToken(.LESS_EQUAL);
+                    try self.addToken(.LESS_EQUAL, Literal.none);
                 } else {
-                    try self.addToken(.LESS);
+                    try self.addToken(.LESS, Literal.none);
                 }
             },
             '>' => {
                 if (self.match('=')) {
-                    try self.addToken(.GREATER_EQUAL);
+                    try self.addToken(.GREATER_EQUAL, Literal.none);
                 } else {
-                    try self.addToken(.GREATER);
+                    try self.addToken(.GREATER, Literal.none);
                 }
             },
             '!' => {
                 if (self.match('=')) {
-                    try self.addToken(.BANG_EQUAL);
+                    try self.addToken(.BANG_EQUAL, Literal.none);
                 } else {
-                    try self.addToken(.BANG);
+                    try self.addToken(.BANG, Literal.none);
                 }
             },
             '=' => {
                 if (self.match('=')) {
-                    try self.addToken(.EQUAL_EQUAL);
+                    try self.addToken(.EQUAL_EQUAL, Literal.none);
                 } else {
-                    try self.addToken(.EQUAL);
+                    try self.addToken(.EQUAL, Literal.none);
                 }
             },
             '/' => {
@@ -134,14 +157,14 @@ const Scanner = struct {
                         _ = self.advance();
                     }
                 } else {
-                    try self.addToken(.SLASH);
+                    try self.addToken(.SLASH, Literal.none);
                 }
             },
             ';' => {
-                try self.addToken(.SEMICOLON);
+                try self.addToken(.SEMICOLON, Literal.none);
             },
             '*' => {
-                try self.addToken(.STAR);
+                try self.addToken(.STAR, Literal.none);
             },
             ' ' => {},
             '\r' => {},
@@ -149,12 +172,27 @@ const Scanner = struct {
             '\n' => {
                 self.line += 1;
             },
+            '"' => {
+                try self.string();
+            },
             else => {
                 try @"error"(self.line, "Unexpected character: {c}", .{c});
             },
         }
     }
 
+    fn string(self: *Scanner) !void {
+        while (self.peek() != '"' and !self.isAtEnd()) {
+            if (self.peek() == '\n') self.line += 1;
+            _ = self.advance();
+        }
+        if (self.isAtEnd()) {
+            try @"error"(self.line, "Unterminated string.", .{});
+            return;
+        }
+        _ = self.advance();
+        try addToken(self, .STRING, .{ .string = self.source[self.start + 1 .. self.current - 1] });
+    }
     fn peek(self: *Scanner) u8 {
         if (self.isAtEnd()) return 0;
         return self.source[self.current];
@@ -174,11 +212,11 @@ const Scanner = struct {
         return self.source[self.current];
     }
 
-    fn addToken(self: *Scanner, tokenType: Token.Type) !void {
+    fn addToken(self: *Scanner, tokenType: Token.Type, literal: Literal) !void {
         try self.tokens.append(.{
             .tokentype = tokenType,
             .lexeme = self.source[self.start..self.current],
-            .literal = null,
+            .literal = literal,
         });
     }
 };
