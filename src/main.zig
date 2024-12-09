@@ -24,7 +24,12 @@ const Literal = union(enum) {
             },
 
             .number => |n| {
-                try _writer.print("{d}", .{n});
+                var buf: [256]u8 = undefined;
+                const str = try std.fmt.bufPrint(&buf, "{d}", .{n});
+                try _writer.writeAll(str);
+                if (std.mem.indexOfScalar(u8, str, '.') == null) {
+                    try _writer.writeAll(".0");
+                }
             },
 
             .none => {
@@ -60,6 +65,7 @@ const Token = struct {
         GREATER_EQUAL,
         LESS_EQUAL,
         STRING,
+        NUMBER,
     };
 
     pub fn format(self: Token) !void {
@@ -175,10 +181,27 @@ const Scanner = struct {
             '"' => {
                 try self.string();
             },
+            '0'...'9' => {
+                try self.number();
+            },
             else => {
                 try @"error"(self.line, "Unexpected character: {c}", .{c});
             },
         }
+    }
+
+    fn number(self: *Scanner) !void {
+        while (std.ascii.isDigit(self.peek())) _ = self.advance();
+        if (self.peek() == '.' and std.ascii.isDigit(self.peekNext())) {
+            _ = self.advance();
+            while (std.ascii.isDigit(self.peek())) _ = self.advance();
+        }
+
+        try self.addToken(.NUMBER, .{ .number = try std.fmt.parseFloat(f64, self.source[self.start..self.current]) });
+    }
+    fn peekNext(self: *Scanner) u8 {
+        if (self.current + 1 >= self.source.len) return 0;
+        return self.source[self.current + 1];
     }
 
     fn string(self: *Scanner) !void {
@@ -191,7 +214,7 @@ const Scanner = struct {
             return;
         }
         _ = self.advance();
-        try addToken(self, .STRING, .{ .string = self.source[self.start + 1 .. self.current - 1] });
+        try self.addToken(.STRING, .{ .string = self.source[self.start + 1 .. self.current - 1] });
     }
     fn peek(self: *Scanner) u8 {
         if (self.isAtEnd()) return 0;
