@@ -202,8 +202,9 @@ const Scanner = struct {
     }
 
     fn identifier(self: *Scanner) !void {
-        while (isAlpha(self.peek())) _ = self.advance();
-
+        while (isAlpha(self.peek())) {
+            _ = self.advance();
+        }
         try self.addToken(.IDENTIFIER, Literal.none);
     }
 
