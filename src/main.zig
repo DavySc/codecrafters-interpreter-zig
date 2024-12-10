@@ -67,6 +67,22 @@ const Token = struct {
         STRING,
         NUMBER,
         IDENTIFIER,
+        AND,
+        CLASS,
+        ELSE,
+        FALSE,
+        FOR,
+        FUN,
+        IF,
+        NIL,
+        OR,
+        PRINT,
+        RETURN,
+        SUPER,
+        THIS,
+        TRUE,
+        VAR,
+        WHILE,
     };
 
     pub fn format(self: Token) !void {
@@ -82,6 +98,25 @@ const Scanner = struct {
     start: usize = 0,
     current: usize = 0,
     line: u32 = 1,
+
+    const keywords = std.StaticStringMap(Token.Type).initComptime(.{
+        .{ "and", .AND },
+        .{ "class", .CLASS },
+        .{ "else", .ELSE },
+        .{ "false", .FALSE },
+        .{ "for", .FOR },
+        .{ "fun", .FUN },
+        .{ "if", .IF },
+        .{ "nil", .NIL },
+        .{ "or", .OR },
+        .{ "print", .PRINT },
+        .{ "return", .RETURN },
+        .{ "super", .SUPER },
+        .{ "this", .THIS },
+        .{ "true", .TRUE },
+        .{ "var", .VAR },
+        .{ "while", .WHILE },
+    });
 
     fn init(source: []const u8, allocator: std.mem.Allocator) Scanner {
         return .{
@@ -203,8 +238,12 @@ const Scanner = struct {
 
     fn identifier(self: *Scanner) !void {
         while (isAlpha(self.peek())) _ = self.advance();
+        const id_type = if (keywords.get(self.source[self.start..self.current])) |@"type"|
+            @"type"
+        else
+            .IDENTIFIER;
 
-        try self.addToken(.IDENTIFIER, Literal.none);
+        try self.addToken(id_type, Literal.none);
     }
 
     fn number(self: *Scanner) !void {
